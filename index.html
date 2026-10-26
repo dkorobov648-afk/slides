@@ -1,0 +1,1392 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Конструктор презентаций</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+<style>
+  :root {
+    --desk: #E4E8EE;
+    --panel: #FFFFFF;
+    --panel-2: #F3F5F8;
+    --ink: #1C2433;
+    --muted: #5E6A7D;
+    --line: #D5DBE3;
+    --primary: #0F7B6C;
+    --primary-hover: #0C6659;
+    --primary-ink: #FFFFFF;
+    --primary-soft: #DDF0EC;
+    --danger: #B42318;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --desk: #151A21;
+      --panel: #1E242D;
+      --panel-2: #262D37;
+      --ink: #E7EBF1;
+      --muted: #9AA5B4;
+      --line: #343C47;
+      --primary: #3FBFA9;
+      --primary-hover: #5CD0BC;
+      --primary-ink: #0B1F1B;
+      --primary-soft: #1C3733;
+      --danger: #F97066;
+      color-scheme: dark;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    font-family: "Onest", system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.45;
+    background: var(--desk);
+    color: var(--ink);
+  }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+  .visually-hidden {
+    position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip: rect(0 0 0 0); white-space: nowrap;
+  }
+
+  /* ---------- Каркас ---------- */
+  .app { display: grid; grid-template-rows: auto 1fr; grid-template-columns: minmax(0, 1fr); height: 100vh; }
+  .bar {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 16px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--line);
+  }
+  .bar .name {
+    flex: 1; min-width: 0; max-width: 560px;
+    font-size: 17px; font-weight: 600;
+    padding: 6px 10px; border-radius: 6px;
+    border: 1px solid transparent; background: transparent;
+  }
+  .bar .name:hover { border-color: var(--line); }
+  .bar .name:focus { border-color: var(--primary); outline: none; }
+  .bar .btn-primary { margin-left: auto; }
+
+  .work { display: grid; grid-template-columns: 196px minmax(0, 1fr) 340px; min-height: 0; }
+
+  /* ---------- Кнопки ---------- */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 8px 14px; border-radius: 8px;
+    border: 1px solid var(--line); background: var(--panel);
+    font-weight: 500; cursor: pointer; white-space: nowrap;
+  }
+  .btn:hover { background: var(--panel-2); }
+  .btn:disabled { opacity: .5; cursor: default; }
+  .btn-primary { background: var(--primary); border-color: var(--primary); color: var(--primary-ink); }
+  .btn-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
+  .btn-quiet { background: var(--panel-2); border-color: transparent; }
+  .btn-quiet:hover { background: var(--line); }
+  .btn-quiet:focus-within { outline: 2px solid var(--primary); outline-offset: 2px; }
+  .btn-danger { color: var(--danger); }
+  .icon-btn {
+    display: inline-grid; place-items: center;
+    width: 28px; height: 28px; padding: 0;
+    border: 0; border-radius: 6px; background: transparent;
+    color: var(--muted); cursor: pointer;
+  }
+  .icon-btn:hover { background: var(--panel-2); color: var(--ink); }
+  .icon-btn:disabled { opacity: .35; cursor: default; background: transparent; }
+  .icon-btn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* ---------- Лента слайдов ---------- */
+  .strip {
+    overflow: auto; padding: 14px 12px 20px;
+    background: var(--panel); border-right: 1px solid var(--line);
+  }
+  #slides { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+  .thumb { position: relative; padding: 4px; border-radius: 8px; }
+  .thumb.is-current { background: var(--primary-soft); }
+  .thumb-pick {
+    display: grid; grid-template-columns: 18px 1fr; align-items: start; gap: 6px;
+    width: 100%; padding: 0; border: 0; background: none; cursor: pointer; text-align: left;
+  }
+  .thumb-num { font-size: 12px; color: var(--muted); padding-top: 2px; text-align: right; }
+  .thumb.is-current .thumb-num { color: var(--primary); font-weight: 600; }
+  .thumb-pick .frame { border-radius: 3px; overflow: hidden; box-shadow: 0 0 0 1px var(--line); }
+  .thumb.is-current .thumb-pick .frame { box-shadow: 0 0 0 2px var(--primary); }
+  .thumb-tools { display: none; justify-content: flex-end; gap: 2px; padding: 4px 0 0 24px; }
+  .thumb.is-current .thumb-tools,
+  .thumb:hover .thumb-tools,
+  .thumb:focus-within .thumb-tools { display: flex; }
+  .add-btn { width: 100%; margin-top: 10px; }
+
+  /* ---------- Сцена ---------- */
+  .stage {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+    padding: 28px; min-width: 0; overflow: auto;
+  }
+  .stage-slide {
+    width: min(100%, 1100px, calc((100vh - 180px) * 16 / 9));
+    box-shadow: 0 1px 2px rgba(20, 30, 45, .12), 0 12px 32px -12px rgba(20, 30, 45, .28);
+  }
+  .stage-nav { display: flex; align-items: center; gap: 10px; color: var(--muted); }
+
+  /* ---------- Панель настроек ---------- */
+  .inspector {
+    display: flex; flex-direction: column; min-height: 0;
+    background: var(--panel); border-left: 1px solid var(--line);
+  }
+  .tabs { display: flex; gap: 4px; padding: 10px 12px 0; border-bottom: 1px solid var(--line); }
+  .tab {
+    padding: 8px 12px; border: 0; background: none; cursor: pointer;
+    font-weight: 500; color: var(--muted);
+    border-bottom: 2px solid transparent; margin-bottom: -1px;
+  }
+  .tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--primary); }
+  .panel { overflow: auto; padding: 16px 16px 28px; flex: 1; }
+  .field { margin-bottom: 18px; }
+  .field > label, .field > .lbl { display: block; font-weight: 500; margin-bottom: 6px; }
+  .field input[type="text"], .field select, .field textarea {
+    width: 100%; padding: 8px 10px;
+    border: 1px solid var(--line); border-radius: 8px; background: var(--panel);
+  }
+  .field textarea { resize: vertical; line-height: 1.45; }
+  .field input + textarea { margin-top: 6px; }
+  .field input[type="text"]:focus, .field select:focus, .field textarea:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px var(--primary-soft); }
+  .hint { margin: 6px 0 0; font-size: 12.5px; color: var(--muted); }
+  .stack > * + * { margin-top: 10px; }
+  .pair { display: grid; grid-template-columns: 92px 1fr; gap: 6px; }
+  .seg { display: inline-flex; flex-wrap: wrap; padding: 3px; border-radius: 9px; background: var(--panel-2); }
+  .seg button { padding: 6px 12px; border: 0; border-radius: 7px; background: none; cursor: pointer; color: var(--muted); }
+  .seg button[aria-pressed="true"] { background: var(--panel); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.12); }
+  .imgpick img { display: block; max-width: 100%; max-height: 140px; border-radius: 6px; margin-bottom: 8px; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .divider { border: 0; border-top: 1px solid var(--line); margin: 20px 0; }
+
+  .themes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px 8px; }
+  .swatch {
+    padding: 0; border: 0; background: none; cursor: pointer; text-align: left;
+    color: var(--muted); font-size: 12.5px;
+  }
+  .swatch-face {
+    display: block; aspect-ratio: 16 / 9; border-radius: 6px; padding: 8px 9px;
+    box-shadow: 0 0 0 1px var(--line); margin-bottom: 4px; position: relative; overflow: hidden;
+  }
+  .swatch-face b { display: block; font-size: 17px; line-height: 1.1; }
+  .swatch-face i { position: absolute; left: 9px; bottom: 9px; width: 22px; height: 3px; }
+  .swatch[aria-pressed="true"] { color: var(--ink); font-weight: 600; }
+  .swatch[aria-pressed="true"] .swatch-face { box-shadow: 0 0 0 2px var(--primary); }
+
+  /* Выбор по живым мини-слайдам: раскладки и украшения */
+  .minis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px 8px; }
+  .minis.two { grid-template-columns: repeat(2, 1fr); }
+  .mini {
+    padding: 0; border: 0; background: none; cursor: pointer; text-align: left;
+    color: var(--muted); font-size: 12.5px;
+  }
+  .mini .frame { border-radius: 4px; overflow: hidden; box-shadow: 0 0 0 1px var(--line); margin-bottom: 4px; }
+  .mini:hover .frame { box-shadow: 0 0 0 1px var(--primary); }
+  .mini[aria-pressed="true"] { color: var(--ink); font-weight: 600; }
+  .mini[aria-pressed="true"] .frame { box-shadow: 0 0 0 2px var(--primary); }
+
+  .color-row { display: flex; align-items: center; gap: 10px; }
+  .color-row input[type="color"] { width: 44px; height: 34px; padding: 2px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); cursor: pointer; }
+  .check { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+  .check input { width: 16px; height: 16px; accent-color: var(--primary); }
+
+  /* ---------- Слайд (общий для превью, миниатюр и файла) ---------- */
+  .frame { container-type: inline-size; width: 100%; }
+  .slide {
+    --pt: calc(100cqw / 720);
+    position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden;
+    background-size: cover; background-position: center;
+  }
+  .slide * { pointer-events: none; }
+  .el { position: absolute; }
+  .el.ell { border-radius: 50%; }
+  .el img { display: block; width: 100%; height: 100%; }
+  .el img.cover { object-fit: cover; }
+  .el.tx { display: flex; flex-direction: column; overflow-wrap: break-word; }
+  .el.tx p, .el.tx ul { margin: 0; padding: 0; }
+  .el.tx ul { list-style: none; }
+  .el.tx li { position: relative; padding-left: calc(var(--pt) * 20); }
+  .el.tx li::before { content: "•"; position: absolute; left: 0; }
+  .el.ph {
+    display: flex; align-items: center; justify-content: center; text-align: center;
+    font-size: calc(var(--pt) * 13);
+    outline: calc(var(--pt) * 1.2) dashed currentColor; outline-offset: calc(var(--pt) * -6);
+  }
+
+  /* ---------- Окно выбора слайда ---------- */
+  dialog {
+    width: min(760px, calc(100vw - 32px)); max-height: calc(100vh - 48px);
+    padding: 0; border: 0; border-radius: 14px;
+    background: var(--panel); color: var(--ink);
+    box-shadow: 0 24px 60px -12px rgba(10, 20, 35, .45);
+  }
+  dialog::backdrop { background: rgba(15, 22, 33, .45); }
+  .dlg-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px 4px; }
+  .dlg-head h2 { margin: 0; font-size: 18px; font-weight: 600; }
+  .type-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; padding: 14px 20px 22px; overflow: auto; }
+  .type-card {
+    padding: 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel);
+    cursor: pointer; text-align: left;
+  }
+  .type-card:hover { border-color: var(--primary); }
+  .type-card .frame { border-radius: 4px; overflow: hidden; box-shadow: 0 0 0 1px var(--line); margin-bottom: 8px; }
+  .type-card strong { display: block; font-weight: 600; }
+  .type-card span { color: var(--muted); font-size: 12.5px; }
+
+  /* ---------- Уведомление ---------- */
+  #toast {
+    position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 14px;
+    max-width: calc(100vw - 32px); padding: 10px 16px; border-radius: 10px;
+    background: var(--ink); color: var(--panel);
+    box-shadow: 0 10px 30px -8px rgba(0,0,0,.4); z-index: 10;
+  }
+  #toast[hidden] { display: none; }
+  .toast-act { border: 0; background: none; color: inherit; font-weight: 600; text-decoration: underline; cursor: pointer; padding: 0; }
+
+  /* ---------- Узкие экраны ---------- */
+  @media (max-width: 900px) {
+    .app { height: auto; min-height: 100vh; }
+    .work { grid-template-columns: minmax(0, 1fr); }
+    .strip { border-right: 0; border-bottom: 1px solid var(--line); display: flex; gap: 8px; align-items: flex-start; padding: 10px 16px; }
+    #slides { display: flex; gap: 6px; }
+    .thumb { width: 150px; flex: none; }
+    .add-btn { width: auto; margin: 4px 0 0; flex: none; }
+    .stage { padding: 20px 16px; }
+    .stage-slide { width: 100%; }
+    .inspector { border-left: 0; border-top: 1px solid var(--line); }
+    .bar .btn-label-long { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="bar">
+    <input class="name" id="deck-name" type="text" aria-label="Название презентации — оно же имя файла" placeholder="Название презентации">
+    <button class="btn btn-primary" id="download" type="button">Скачать <span class="btn-label-long">для PowerPoint</span> (.pptx)</button>
+  </header>
+
+  <div class="work">
+    <nav class="strip" aria-label="Слайды">
+      <ol id="slides"></ol>
+      <button class="btn btn-quiet add-btn" id="add-open" type="button">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg>
+        Добавить слайд
+      </button>
+    </nav>
+
+    <main class="stage">
+      <div class="stage-slide" id="stage-slide"></div>
+      <div class="stage-nav">
+        <button class="icon-btn" id="prev" type="button" aria-label="Предыдущий слайд"><svg viewBox="0 0 16 16"><path d="M10 3 5 8l5 5"/></svg></button>
+        <span id="stage-count" aria-live="polite"></span>
+        <button class="icon-btn" id="next" type="button" aria-label="Следующий слайд"><svg viewBox="0 0 16 16"><path d="m6 3 5 5-5 5"/></svg></button>
+      </div>
+    </main>
+
+    <aside class="inspector" aria-label="Настройки">
+      <div class="tabs" role="tablist">
+        <button class="tab" id="tab-slide" role="tab" type="button" aria-controls="panel-slide">Слайд</button>
+        <button class="tab" id="tab-theme" role="tab" type="button" aria-controls="panel-theme">Оформление</button>
+      </div>
+      <div class="panel" id="panel-slide" role="tabpanel" aria-labelledby="tab-slide"></div>
+      <div class="panel" id="panel-theme" role="tabpanel" aria-labelledby="tab-theme" hidden></div>
+    </aside>
+  </div>
+</div>
+
+<dialog id="add-dlg" aria-labelledby="add-title">
+  <div class="dlg-head">
+    <h2 id="add-title">Какой слайд добавить?</h2>
+    <button class="icon-btn" id="add-close" type="button" aria-label="Закрыть"><svg viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
+  </div>
+  <div class="type-grid" id="type-grid"></div>
+</dialog>
+
+<div id="toast" role="status" aria-live="polite" hidden></div>
+
+<script>
+(() => {
+  const $ = (sel) => document.querySelector(sel);
+
+  // Размер слайда в дюймах — как у PowerPoint 16:9
+  const W = 10, H = 5.625, M = 0.6, CW = W - 2 * M;
+
+  // grad — плавный переход цвета по диагонали; bg у таких тем — средний цвет (по нему подбирается контраст)
+  const THEMES = [
+    { id: 'clean',    name: 'Чистая',   bg: '#FFFFFF', text: '#1E2430', muted: '#5C6575', accent: '#2E5BDB', head: 'Arial',        body: 'Arial' },
+    { id: 'graphite', name: 'Графит',   bg: '#22262D', text: '#F2F4F7', muted: '#A9B1BD', accent: '#F2B33D', head: 'Trebuchet MS', body: 'Trebuchet MS' },
+    { id: 'classic',  name: 'Классика', bg: '#F6F4F0', text: '#262220', muted: '#6B635C', accent: '#7A2E3A', head: 'Georgia',      body: 'Georgia' },
+    { id: 'forest',   name: 'Лес',      bg: '#13322B', text: '#EEF5F1', muted: '#A8C2B8', accent: '#8FD18B', head: 'Verdana',      body: 'Verdana' },
+    { id: 'sky',      name: 'Небо',     bg: '#EAF3FB', text: '#14304A', muted: '#4F6B85', accent: '#E0573E', head: 'Calibri',      body: 'Calibri' },
+    { id: 'contrast', name: 'Контраст', bg: '#FFFFFF', text: '#000000', muted: '#555555', accent: '#000000', head: 'Arial',        body: 'Arial' },
+    { id: 'mint',     name: 'Мята',     bg: '#E9F6F0', text: '#12382C', muted: '#4A6B60', accent: '#0E9F6E', head: 'Segoe UI',     body: 'Segoe UI' },
+    { id: 'lavender', name: 'Лаванда',  bg: '#F0EDFA', text: '#2A2350', muted: '#645C8C', accent: '#6D4AFF', head: 'Trebuchet MS', body: 'Trebuchet MS' },
+    { id: 'navy',     name: 'Строгая',  bg: '#0F2140', text: '#FFFFFF', muted: '#A9B7CD', accent: '#E3B04B', head: 'Georgia',      body: 'Arial' },
+    { id: 'energy',   name: 'Энергия',  bg: '#FFFFFF', text: '#1A1A1A', muted: '#595959', accent: '#E63946', head: 'Tahoma',       body: 'Tahoma' },
+    { id: 'olive',    name: 'Олива',    bg: '#F3F4EA', text: '#2D3220', muted: '#626850', accent: '#687D1E', head: 'Georgia',      body: 'Tahoma' },
+    { id: 'sunset',   name: 'Закат',    bg: '#77305B', grad: ['#2B1A4A', '#C2416B'], text: '#FFFFFF', muted: '#F0CFE0', accent: '#FFC857', head: 'Trebuchet MS', body: 'Trebuchet MS' },
+    { id: 'ocean',    name: 'Океан',    bg: '#155669', grad: ['#0F2D52', '#1B7F8C'], text: '#FFFFFF', muted: '#BFD9E6', accent: '#7FE0D0', head: 'Segoe UI',     body: 'Segoe UI' },
+    { id: 'dawn',     name: 'Рассвет',  bg: '#F1F0F1', grad: ['#FFF1DE', '#DCE6FB'], text: '#1E2430', muted: '#56607A', accent: '#3D5AFE', head: 'Calibri',      body: 'Calibri' },
+  ];
+  // Только шрифты, которые есть в PowerPoint на любом компьютере
+  const FONTS = ['Arial', 'Calibri', 'Georgia', 'Segoe UI', 'Tahoma', 'Times New Roman', 'Trebuchet MS', 'Verdana'];
+  const SERIF = new Set(['Georgia', 'Times New Roman']);
+
+  const DECORS = [['lines', 'Полоски'], ['shapes', 'Фигуры'], ['frame', 'Рамка'], ['none', 'Без украшений']];
+
+  const TYPES = [
+    { id: 'title',   label: 'Титульный',   hint: 'Название, подзаголовок, автор' },
+    { id: 'section', label: 'Раздел',      hint: 'Слайд между частями' },
+    { id: 'text',    label: 'Текст',       hint: 'Заголовок и абзацы' },
+    { id: 'bullets', label: 'Список',      hint: 'Заголовок и пункты' },
+    { id: 'twoCol',  label: 'Две колонки', hint: 'Сравнение или два блока' },
+    { id: 'image',   label: 'Картинка',    hint: 'Картинка и пояснение' },
+    { id: 'quote',   label: 'Цитата',      hint: 'Крупная цитата с автором' },
+    { id: 'numbers', label: 'Цифры',       hint: 'До трёх крупных показателей' },
+    { id: 'end',     label: 'Финал',       hint: 'Спасибо и контакты' },
+  ];
+  const TYPE = Object.fromEntries(TYPES.map((t) => [t.id, t]));
+
+  // Варианты раскладки для каждого типа; первый — по умолчанию
+  const LAYOUTS = {
+    title:   [['left', 'Слева'], ['center', 'По центру'], ['band', 'С плашкой']],
+    section: [['fill', 'Цветной фон'], ['plain', 'Фон темы'], ['side', 'Половина']],
+    text:    [['wide', 'Обычная'], ['side', 'Заголовок сбоку']],
+    bullets: [['plain', 'Обычный'], ['numbered', 'С номерами'], ['cards', 'Карточки']],
+    twoCol:  [['lines', 'Обычные'], ['cards', 'Карточки']],
+    image:   [['side', 'Рядом с текстом'], ['full', 'Во весь слайд']],
+    quote:   [['mark', 'С кавычкой'], ['center', 'По центру'], ['fill', 'Цветной фон']],
+    numbers: [['lines', 'Обычные'], ['cards', 'Карточки']],
+    end:     [['center', 'Обычный'], ['fill', 'Цветной фон']],
+  };
+  // Раскладки, у которых фон — акцентный цвет
+  const ACCENT_LAYOUT = { section: 'fill', quote: 'fill', end: 'fill' };
+  const layoutOf = (s) => (LAYOUTS[s.type].some(([v]) => v === s.layout) ? s.layout : LAYOUTS[s.type][0][0]);
+
+  const monthYear = new Date().toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' }).replace(/\s*г\.?$/, '');
+
+  const DEFAULTS = {
+    title:   { title: 'Название презентации', subtitle: 'Одна фраза о том, о чём пойдёт речь', footer: 'Имя Фамилия, ' + monthYear },
+    section: { kicker: 'Часть 1', title: 'Название раздела' },
+    text:    { title: 'Заголовок слайда', body: 'Здесь основной текст. Пишите коротко: на слайде — главное, подробности — голосом.\nНовый абзац начинается с новой строки.' },
+    bullets: { title: 'Главное', items: 'Первый пункт\nВторой пункт\nТретий пункт' },
+    twoCol:  { title: 'Сравнение', leftHead: 'Было', leftText: 'Как всё работало раньше', rightHead: 'Стало', rightText: 'Что изменилось теперь' },
+    image:   { title: 'Заголовок слайда', image: null, imageSide: 'left', text: 'Пара предложений о том, что на картинке.' },
+    quote:   { quote: 'Хорошая цитата короткая и запоминается с первого раза.', author: 'Автор цитаты' },
+    numbers: { title: 'В цифрах', n1: '120', c1: 'клиентов за год', n2: '35%', c2: 'рост выручки', n3: '4', c3: 'новых города' },
+    end:     { title: 'Спасибо!', text: 'Вопросы?\nname@example.ru' },
+  };
+
+  const T_TITLE = { k: 'title', label: 'Заголовок', kind: 'input' };
+  const FIELDS = {
+    title:   [T_TITLE, { k: 'subtitle', label: 'Подзаголовок', kind: 'input' }, { k: 'footer', label: 'Автор и дата', kind: 'input' }],
+    section: [{ k: 'kicker', label: 'Надпись над названием', kind: 'input' }, { k: 'title', label: 'Название раздела', kind: 'input' }],
+    text:    [T_TITLE, { k: 'body', label: 'Текст', kind: 'area', rows: 7, hint: 'Новый абзац — с новой строки' }],
+    bullets: [T_TITLE, { k: 'items', label: 'Пункты', kind: 'area', rows: 7, hint: 'Каждый пункт — с новой строки' }],
+    twoCol:  [T_TITLE,
+              { k: ['leftHead', 'leftText'], label: 'Левая колонка', kind: 'block' },
+              { k: ['rightHead', 'rightText'], label: 'Правая колонка', kind: 'block' }],
+    image:   [T_TITLE, { k: 'image', label: 'Картинка', kind: 'image', hint: 'JPG или PNG. Большие картинки уменьшатся сами.' },
+              { k: 'imageSide', label: 'Где картинка', kind: 'choice', options: [['left', 'Слева'], ['right', 'Справа']], when: (s) => layoutOf(s) !== 'full' },
+              { k: 'text', label: 'Пояснение', kind: 'area', rows: 4 }],
+    quote:   [{ k: 'quote', label: 'Цитата', kind: 'area', rows: 4 }, { k: 'author', label: 'Автор', kind: 'input' }],
+    numbers: [T_TITLE,
+              { k: ['n1', 'c1'], label: 'Показатель 1', kind: 'pair' },
+              { k: ['n2', 'c2'], label: 'Показатель 2', kind: 'pair' },
+              { k: ['n3', 'c3'], label: 'Показатель 3', kind: 'pair', hint: 'Пустые показатели на слайд не попадут' }],
+    end:     [T_TITLE, { k: 'text', label: 'Контакты или вопрос залу', kind: 'area', rows: 4 }],
+  };
+
+  // ---------- Состояние ----------
+  const KEY = 'konstruktor-prezentaciy-v1';
+  const uid = () => Math.random().toString(36).slice(2, 10);
+  const newSlide = (type) => ({ id: uid(), type, notes: '', bg: null, ...structuredClone(DEFAULTS[type]) });
+
+  function sample() {
+    const s = (type, extra) => ({ ...newSlide(type), ...extra });
+    return {
+      name: 'Моя презентация',
+      themeId: 'clean', accent: null, headFont: null, bodyFont: null, showNumbers: true,
+      decor: 'lines', bg: null,
+      current: 0,
+      slides: [
+        s('title'),
+        s('bullets', { title: 'О чём расскажу', items: 'С чего всё началось\nЧто получилось\nЧто дальше' }),
+        s('numbers'),
+        s('quote'),
+        s('end'),
+      ],
+    };
+  }
+  function load() {
+    try {
+      const data = JSON.parse(localStorage.getItem(KEY));
+      if (data && Array.isArray(data.slides) && data.slides.length) {
+        data.current = Math.min(Math.max(0, data.current | 0), data.slides.length - 1);
+        return data;
+      }
+    } catch (e) { /* нет черновика — начнём с примера */ }
+    return null;
+  }
+  let state = load() || sample();
+  let tab = 'slide';
+  let saveTimer, saveWarned = false;
+  // В некоторых режимах браузер вообще не даёт сохранять — тогда работаем без черновика
+  let storageOk = true;
+  try { localStorage.getItem(KEY); } catch (e) { storageOk = false; }
+
+  function scheduleSave() {
+    if (!storageOk) return;
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      try { localStorage.setItem(KEY, JSON.stringify(state)); }
+      catch (e) {
+        if (!saveWarned) {
+          saveWarned = true;
+          toast('Черновик не сохранился в браузере — скорее всего, картинки слишком большие. Скачайте .pptx, чтобы не потерять работу.');
+        }
+      }
+    }, 400);
+  }
+  const cur = () => state.slides[state.current];
+
+  // ---------- Цвета ----------
+  const rgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+  const toHex = (a) => '#' + a.map((v) => Math.round(v).toString(16).padStart(2, '0')).join('').toUpperCase();
+  const mix = (a, b, t) => { const x = rgb(a), y = rgb(b); return toHex(x.map((v, i) => v + (y[i] - v) * t)); };
+  const lum = (h) => {
+    const [r, g, b] = rgb(h).map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; });
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  };
+  const contrast = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+
+  function theme() {
+    const base = THEMES.find((t) => t.id === state.themeId) || THEMES[0];
+    const accent = state.accent || base.accent;
+    return {
+      ...base, accent,
+      onAccent: lum(accent) > 0.4 ? '#111111' : '#FFFFFF',
+      head: state.headFont || base.head,
+      body: state.bodyFont || base.body,
+    };
+  }
+
+  // Картинка с плавным переходом цвета: одна и та же — в превью и в файле
+  const gradCache = new Map();
+  function gradImage([c1, c2]) {
+    const key = c1 + c2;
+    if (!gradCache.has(key)) {
+      const c = document.createElement('canvas');
+      c.width = 1600; c.height = 900;
+      const g = c.getContext('2d');
+      const lg = g.createLinearGradient(0, 0, 1600, 900);
+      lg.addColorStop(0, c1);
+      lg.addColorStop(1, c2);
+      g.fillStyle = lg;
+      g.fillRect(0, 0, 1600, 900);
+      gradCache.set(key, c.toDataURL('image/jpeg', 0.92));
+    }
+    return gradCache.get(key);
+  }
+
+  // Цвета текста под конкретный фон: на тёмном — светлые, на светлом — тёмные
+  const basePal = (T) => ({ text: T.text, muted: T.muted, accent: T.accent });
+  const darkPal = (T) => ({ text: '#FFFFFF', muted: '#D5DAE1', accent: contrast(T.accent, '#333333') >= 2.5 ? T.accent : '#FFFFFF' });
+  const lightPal = (T) => ({ text: '#16191F', muted: '#4A505A', accent: contrast(T.accent, '#EEEEEE') >= 2.5 ? T.accent : '#16191F' });
+  const accentPal = (T) => ({ text: T.onAccent, muted: mix(T.onAccent, T.accent, 0.3), accent: T.onAccent });
+  function palFor(color, T) {
+    if (contrast(T.text, color) >= 4.5) {
+      const p = basePal(T);
+      if (contrast(T.muted, color) < 3) p.muted = mix(T.text, color, 0.3);
+      if (contrast(T.accent, color) < 2) p.accent = T.text;
+      return p;
+    }
+    return lum(color) < 0.4 ? darkPal(T) : lightPal(T);
+  }
+  const usableBg = (b) => !!b && ((b.kind === 'color' && !!b.color) || (b.kind === 'img' && !!(b.image && b.image.src)));
+
+  // Фон слайда: свой фон слайда → цветная раскладка → фон всех слайдов → тема
+  function resolveBg(s, layout, T) {
+    const src = usableBg(s.bg) ? s.bg
+      : ACCENT_LAYOUT[s.type] === layout ? { kind: 'accent' }
+      : usableBg(state.bg) ? state.bg : null;
+    if (!src) return T.grad ? { bg: { src: gradImage(T.grad), grad: true }, P: basePal(T) } : { bg: { color: T.bg }, P: basePal(T) };
+    if (src.kind === 'accent') return { bg: { color: T.accent }, P: accentPal(T) };
+    if (src.kind === 'color') return { bg: { color: src.color }, P: palFor(src.color, T) };
+    const bg = { src: src.image.src };
+    if (src.overlay === 'dark') return { bg, overlay: ['#000000', 0.5], P: darkPal(T) };
+    if (src.overlay === 'light') return { bg, overlay: ['#FFFFFF', 0.7], P: lightPal(T) };
+    return { bg, P: basePal(T) };
+  }
+
+  // ---------- Раскладка слайда ----------
+  // Один и тот же список элементов рисуется и в превью, и в файл PowerPoint
+  const lines = (v) => String(v || '').split('\n').map((x) => x.trim()).filter(Boolean);
+  function fit(img, box) {
+    if (!img || !img.w || !img.h) return box;
+    const r = Math.min(box.w / img.w, box.h / img.h);
+    const w = img.w * r, h = img.h * r;
+    return { x: box.x + (box.w - w) / 2, y: box.y + (box.h - h) / 2, w, h };
+  }
+
+  function build(s, index, opts = {}) {
+    const T = theme();
+    const decor = opts.decor || state.decor || 'lines';
+    const layout = layoutOf(s);
+    const { bg, P, overlay } = resolveBg(s, layout, T);
+    const els = [];
+    let numColor = P.muted;
+
+    const text = (o) => {
+      const paras = o.paras || lines(o.v);
+      if (!paras.length) return;
+      els.push({ t: 'text', font: T.body, color: P.text, size: 18, align: 'left', valign: 'top', ls: 1, after: 0, ...o, paras });
+    };
+    const rect = (x, y, w, h, fill, alpha) => els.push({ t: 'rect', x, y, w, h, fill, alpha });
+    const bar = (x, y, w, h) => { if (decor === 'lines') rect(x, y, w, h, P.accent); };
+    const card = (x, y, w, h) => rect(x, y, w, h, P.text, lum(P.text) > 0.5 ? 0.12 : 0.06);
+    const heading = (v) => text({ x: M, y: 0.35, w: CW, h: 1.0, v, size: 30, bold: true, font: T.head, valign: 'middle' });
+    const author = (a) => (lines(a).length ? ['— ' + lines(a).join(' ')] : []);
+
+    if (overlay) rect(0, 0, W, H, overlay[0], overlay[1]);
+    if (decor === 'shapes') {
+      els.push({ t: 'ellipse', x: W - 2.3, y: -1.6, w: 4, h: 4, fill: P.accent, alpha: 0.14 });
+      els.push({ t: 'ellipse', x: -0.7, y: H - 0.7, w: 1.4, h: 1.4, fill: P.accent, alpha: 0.24 });
+    } else if (decor === 'frame') {
+      const i = 0.22, t = 0.03;
+      rect(i, i, W - 2 * i, t, P.accent);
+      rect(i, H - i - t, W - 2 * i, t, P.accent);
+      rect(i, i, t, H - 2 * i, P.accent);
+      rect(W - i - t, i, t, H - 2 * i, P.accent);
+    }
+
+    switch (s.type) {
+      case 'title':
+        if (layout === 'band') {
+          rect(0, 3.45, W, H - 3.45, T.accent);
+          text({ x: M, y: 0.5, w: CW, h: 2.75, v: s.title, size: 40, bold: true, font: T.head, valign: 'bottom', ls: 0.95 });
+          text({ x: M, y: 3.75, w: CW, h: 0.7, v: s.subtitle, size: 20, color: T.onAccent });
+          text({ x: M, y: 4.6, w: CW, h: 0.55, v: s.footer, size: 14, color: mix(T.onAccent, T.accent, 0.3), valign: 'bottom' });
+        } else {
+          const c = layout === 'center', align = c ? 'center' : 'left';
+          text({ x: M, y: 0.9, w: CW, h: 2.3, v: s.title, size: 40, bold: true, font: T.head, valign: 'bottom', ls: 0.95, align });
+          bar(c ? W / 2 - 0.45 : M, 3.4, 0.9, 0.07);
+          text({ x: M, y: 3.65, w: CW, h: 0.8, v: s.subtitle, size: 20, color: P.muted, align });
+          text({ x: M, y: 4.7, w: CW, h: 0.45, v: s.footer, size: 14, color: P.muted, valign: 'bottom', align });
+        }
+        break;
+      case 'section':
+        if (layout === 'side') {
+          const bw = W * 0.4;
+          rect(0, 0, bw, H, T.accent);
+          text({ x: 0.5, y: 0.6, w: bw - 1, h: H - 1.2, v: s.kicker, size: 30, bold: true, font: T.head, color: T.onAccent, valign: 'middle' });
+          text({ x: bw + 0.5, y: 0.6, w: W - bw - 1.1, h: H - 1.2, v: s.title, size: 36, bold: true, font: T.head, valign: 'middle', ls: 0.95 });
+        } else if (layout === 'plain') {
+          bar(M, 1.5, 0.08, 2.6);
+          const x = decor === 'lines' ? M + 0.4 : M;
+          text({ x, y: 1.5, w: W - M - x, h: 0.6, v: s.kicker, size: 18, bold: true, color: P.accent });
+          text({ x, y: 2.1, w: W - M - x, h: 2.0, v: s.title, size: 44, bold: true, font: T.head, ls: 0.95 });
+        } else {
+          text({ x: M, y: 1.5, w: CW, h: 0.55, v: s.kicker, size: 16, valign: 'bottom' });
+          text({ x: M, y: 2.15, w: CW, h: 1.9, v: s.title, size: 40, bold: true, font: T.head, ls: 0.95 });
+        }
+        break;
+      case 'text':
+        if (layout === 'side') {
+          text({ x: M, y: 0.6, w: 3.0, h: 4.4, v: s.title, size: 28, bold: true, font: T.head, ls: 0.95 });
+          bar(3.9, 0.65, 0.035, 4.3);
+          text({ x: 4.25, y: 0.6, w: W - M - 4.25, h: 4.4, v: s.body, size: 18, ls: 1.15, after: 10 });
+        } else {
+          heading(s.title);
+          text({ x: M, y: 1.55, w: CW, h: 3.5, v: s.body, size: 18, ls: 1.15, after: 10 });
+        }
+        break;
+      case 'bullets': {
+        heading(s.title);
+        const items = lines(s.items);
+        if (layout === 'numbered') {
+          const rowH = Math.min(0.8, 3.5 / Math.max(items.length, 1));
+          items.forEach((it, k) => {
+            const y = 1.55 + k * rowH;
+            text({ x: M, y, w: 0.7, h: rowH, paras: [String(k + 1)], size: Math.round(Math.min(26, rowH * 40)), bold: true, color: P.accent, font: T.head, valign: 'middle' });
+            text({ x: M + 0.75, y, w: CW - 0.75, h: rowH, paras: [it], size: Math.round(Math.min(20, rowH * 30)), valign: 'middle' });
+          });
+        } else if (layout === 'cards') {
+          const n = items.length, cols = n <= 3 ? Math.max(n, 1) : n === 4 ? 2 : 3, rows = Math.ceil(n / cols), gap = 0.25;
+          const cw = (CW - gap * (cols - 1)) / cols, ch = (3.5 - gap * (rows - 1)) / rows;
+          items.forEach((it, k) => {
+            const x = M + (k % cols) * (cw + gap), y = 1.55 + Math.floor(k / cols) * (ch + gap);
+            card(x, y, cw, ch);
+            bar(x, y, cw, 0.05);
+            text({ x: x + 0.2, y: y + 0.15, w: cw - 0.4, h: ch - 0.3, paras: [it], size: rows > 2 ? 15 : 18, valign: 'middle', ls: 1.05 });
+          });
+        } else {
+          text({ x: M, y: 1.55, w: CW, h: 3.5, paras: items, size: 20, list: true, ls: 1.1, after: 10 });
+        }
+        break;
+      }
+      case 'twoCol': {
+        heading(s.title);
+        const gap = 0.5, cw = (CW - gap) / 2;
+        [[s.leftHead, s.leftText, M], [s.rightHead, s.rightText, M + cw + gap]].forEach(([hd, tx, x]) => {
+          if (layout === 'cards') {
+            card(x, 1.55, cw, 3.5);
+            bar(x, 1.55, cw, 0.06);
+            text({ x: x + 0.3, y: 1.8, w: cw - 0.6, h: 0.55, v: hd, size: 20, bold: true, font: T.head, color: P.accent });
+            text({ x: x + 0.3, y: 2.45, w: cw - 0.6, h: 2.4, v: tx, size: 16, ls: 1.15, after: 8 });
+          } else {
+            bar(x, 1.6, cw, 0.06);
+            text({ x, y: 1.8, w: cw, h: 0.55, v: hd, size: 20, bold: true, font: T.head });
+            text({ x, y: 2.45, w: cw, h: 2.6, v: tx, size: 16, ls: 1.15, after: 8 });
+          }
+        });
+        break;
+      }
+      case 'image': {
+        const has = s.image && s.image.src;
+        if (layout === 'full') {
+          const box = { x: 0, y: 0, w: W, h: H };
+          if (has) els.push({ t: 'img', ...box, src: s.image.src, cover: true });
+          else els.push({ t: 'placeholder', ...box, fill: P.text, alpha: 0.08, color: P.muted });
+          rect(0, H - 1.85, W, 1.85, '#000000', 0.55);
+          text({ x: M, y: H - 1.7, w: CW, h: 0.75, v: s.title, size: 28, bold: true, font: T.head, color: '#FFFFFF', valign: 'bottom' });
+          text({ x: M, y: H - 0.9, w: CW - 0.8, h: 0.6, v: s.text, size: 16, color: '#E6E9EE' });
+          numColor = '#E6E9EE';
+        } else {
+          heading(s.title);
+          const iw = 4.7, left = s.imageSide !== 'right';
+          const box = { x: left ? M : W - M - iw, y: 1.55, w: iw, h: 3.5 };
+          if (has) els.push({ t: 'img', ...fit(s.image, box), src: s.image.src });
+          else els.push({ t: 'placeholder', ...box, fill: P.text, alpha: 0.08, color: P.muted });
+          text({ x: left ? M + iw + 0.4 : M, y: 1.55, w: CW - iw - 0.4, h: 3.5, v: s.text, size: 18, ls: 1.15, after: 10, valign: 'middle' });
+        }
+        break;
+      }
+      case 'quote':
+        if (layout === 'mark') {
+          text({ x: M - 0.05, y: 0.35, w: 1.5, h: 1.3, paras: ['«'], size: 110, bold: true, color: P.accent, font: 'Georgia', ls: 0.8 });
+          text({ x: 1.3, y: 1.25, w: W - 2.6, h: 2.7, v: s.quote, size: 28, italic: true, font: T.head, valign: 'middle', ls: 1.1 });
+          text({ x: 1.3, y: 4.1, w: W - 2.6, h: 0.5, paras: author(s.author), size: 16, color: P.muted });
+        } else {
+          text({ x: 1, y: 0.8, w: W - 2, h: 3.0, v: s.quote, size: 30, italic: true, font: T.head, align: 'center', valign: 'middle', ls: 1.1 });
+          bar(W / 2 - 0.45, 4.0, 0.9, 0.06);
+          text({ x: 1, y: 4.2, w: W - 2, h: 0.5, paras: author(s.author), size: 16, color: P.muted, align: 'center' });
+        }
+        break;
+      case 'numbers': {
+        heading(s.title);
+        const items = [1, 2, 3].map((n) => [s['n' + n], s['c' + n]]).filter(([a, b]) => lines(a).length || lines(b).length);
+        const n = items.length || 1, gap = 0.4, cw = (CW - gap * (n - 1)) / n;
+        const size = n === 1 ? 60 : 48;
+        items.forEach(([num, cap], k) => {
+          const x = M + k * (cw + gap);
+          if (layout === 'cards') {
+            card(x, 1.6, cw, 3.2);
+            bar(x, 1.6, cw, 0.05);
+            text({ x: x + 0.25, y: 1.85, w: cw - 0.5, h: 1.1, v: num, size, bold: true, color: P.accent, font: T.head, valign: 'middle' });
+            text({ x: x + 0.25, y: 3.05, w: cw - 0.5, h: 1.55, v: cap, size: 16, color: P.muted, ls: 1.1 });
+          } else {
+            bar(x, 1.9, cw, 0.05);
+            text({ x, y: 2.1, w: cw, h: 1.1, v: num, size, bold: true, color: P.accent, font: T.head, valign: 'middle' });
+            text({ x, y: 3.3, w: cw, h: 1.3, v: cap, size: 16, color: P.muted, ls: 1.1 });
+          }
+        });
+        break;
+      }
+      case 'end':
+        text({ x: M, y: 1.0, w: CW, h: 1.8, v: s.title, size: 44, bold: true, font: T.head, align: 'center', valign: 'bottom', ls: 0.95 });
+        bar(W / 2 - 0.45, 3.0, 0.9, 0.07);
+        text({ x: M, y: 3.3, w: CW, h: 1.4, v: s.text, size: 18, color: P.muted, align: 'center', ls: 1.1, after: 4 });
+        break;
+    }
+    if (state.showNumbers && s.type !== 'title' && index != null) {
+      text({ x: W - M - 1, y: H - 0.5, w: 1, h: 0.3, paras: [String(index + 1)], size: 11, color: numColor, align: 'right', valign: 'bottom' });
+    }
+    return { bg, els };
+  }
+
+  // ---------- Рисование слайда в браузере ----------
+  // Картинки храним как текст (data URL); для показа превращаем их в короткие ссылки — так превью не тормозит
+  const urlCache = new Map();
+  function viewUrl(src) {
+    if (!src.startsWith('data:')) return src;
+    if (!urlCache.has(src)) {
+      try {
+        const [head, body] = src.split(',');
+        const bin = atob(body);
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        urlCache.set(src, URL.createObjectURL(new Blob([bytes], { type: head.slice(5).split(';')[0] })));
+      } catch (e) { urlCache.set(src, src); }
+    }
+    return urlCache.get(src);
+  }
+
+  const pct = (v, total) => (v / total) * 100 + '%';
+  const VALIGN = { top: 'flex-start', middle: 'center', bottom: 'flex-end' };
+  const fontStack = (f) => `"${f}", ${SERIF.has(f) ? 'Georgia, serif' : 'Arial, sans-serif'}`;
+  const rgba = (hex, a) => { const [r, g, b] = rgb(hex); return `rgba(${r}, ${g}, ${b}, ${a == null ? 1 : a})`; };
+
+  function slideEl(model) {
+    const frame = document.createElement('div');
+    frame.className = 'frame';
+    const slide = document.createElement('div');
+    slide.className = 'slide';
+    if (model.bg.src) slide.style.backgroundImage = `url("${viewUrl(model.bg.src)}")`;
+    else slide.style.backgroundColor = model.bg.color;
+    frame.appendChild(slide);
+    for (const e of model.els) {
+      const d = document.createElement('div');
+      d.className = 'el';
+      Object.assign(d.style, { left: pct(e.x, W), top: pct(e.y, H), width: pct(e.w, W), height: pct(e.h, H) });
+      if (e.t === 'rect' || e.t === 'ellipse') {
+        d.style.background = rgba(e.fill, e.alpha);
+        if (e.t === 'ellipse') d.classList.add('ell');
+      } else if (e.t === 'placeholder') {
+        d.classList.add('ph');
+        d.style.background = rgba(e.fill, e.alpha);
+        d.style.color = e.color;
+        d.textContent = 'Здесь будет картинка';
+      } else if (e.t === 'img') {
+        const im = document.createElement('img');
+        im.src = viewUrl(e.src);
+        im.alt = '';
+        if (e.cover) im.className = 'cover';
+        d.appendChild(im);
+      } else {
+        d.classList.add('tx');
+        Object.assign(d.style, {
+          fontFamily: fontStack(e.font),
+          fontSize: `calc(var(--pt) * ${e.size})`,
+          lineHeight: String(1.2 * e.ls),
+          color: e.color,
+          fontWeight: e.bold ? '700' : '400',
+          fontStyle: e.italic ? 'italic' : 'normal',
+          textAlign: e.align,
+          justifyContent: VALIGN[e.valign],
+        });
+        const wrap = document.createElement(e.list ? 'ul' : 'div');
+        e.paras.forEach((p, i) => {
+          const n = document.createElement(e.list ? 'li' : 'p');
+          n.textContent = p;
+          if (i < e.paras.length - 1) n.style.marginBottom = `calc(var(--pt) * ${e.after})`;
+          wrap.appendChild(n);
+        });
+        d.appendChild(wrap);
+      }
+      slide.appendChild(d);
+    }
+    return frame;
+  }
+
+  // ---------- Мелкие помощники для интерфейса ----------
+  const ICONS = {
+    up: '<path d="M8 12.5V3.5M4 7.5l4-4 4 4"/>',
+    down: '<path d="M8 3.5v9M4 8.5l4 4 4-4"/>',
+    copy: '<rect x="5.5" y="5.5" width="7.5" height="7.5" rx="1.5"/><path d="M3 10.5V4a1 1 0 0 1 1-1h6.5"/>',
+    trash: '<path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 8.5h5.8l.6-8.5"/>',
+  };
+  function iconBtn(icon, label, onClick, disabled) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'icon-btn';
+    b.setAttribute('aria-label', label);
+    b.title = label;
+    b.innerHTML = `<svg viewBox="0 0 16 16" aria-hidden="true">${ICONS[icon]}</svg>`;
+    b.disabled = !!disabled;
+    b.onclick = onClick;
+    return b;
+  }
+  function btn(label, cls, onClick) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = cls;
+    b.textContent = label;
+    b.onclick = onClick;
+    return b;
+  }
+  let fieldId = 0;
+  // Подпись к полю. Если внутри группа кнопок (data-group), подпись озвучивает всю группу
+  function field(label, control, hint) {
+    const wrap = document.createElement('div');
+    wrap.className = 'field';
+    const id = 'f' + (++fieldId);
+    const input = control.dataset.group ? null
+      : control.matches('input, select, textarea') ? control
+      : control.querySelector('input:not([type="file"]), select, textarea');
+    if (label) {
+      if (input) {
+        const l = document.createElement('label');
+        l.htmlFor = id;
+        l.textContent = label;
+        input.id = id;
+        wrap.appendChild(l);
+      } else {
+        const l = document.createElement('span');
+        l.className = 'lbl';
+        l.id = id;
+        l.textContent = label;
+        control.setAttribute('aria-labelledby', id);
+        wrap.appendChild(l);
+      }
+    }
+    wrap.appendChild(control);
+    if (hint) {
+      const h = document.createElement('p');
+      h.className = 'hint';
+      h.textContent = hint;
+      wrap.appendChild(h);
+    }
+    return wrap;
+  }
+  function textInput(s, k, placeholder) {
+    const i = document.createElement('input');
+    i.type = 'text';
+    i.value = s[k] || '';
+    if (placeholder) { i.placeholder = placeholder; i.setAttribute('aria-label', placeholder); }
+    i.oninput = () => { s[k] = i.value; refreshCurrent(); };
+    return i;
+  }
+  function textArea(s, k, rows, placeholder) {
+    const t = document.createElement('textarea');
+    t.rows = rows || 4;
+    t.value = s[k] || '';
+    if (placeholder) { t.placeholder = placeholder; t.setAttribute('aria-label', placeholder); }
+    t.oninput = () => { s[k] = t.value; refreshCurrent(); };
+    return t;
+  }
+  function selectEl(options, value, onChange, styleFont) {
+    const sel = document.createElement('select');
+    options.forEach(([v, label]) => {
+      const o = document.createElement('option');
+      o.value = v;
+      o.textContent = label;
+      if (styleFont) o.style.fontFamily = fontStack(v);
+      sel.appendChild(o);
+    });
+    sel.value = value;
+    sel.onchange = () => onChange(sel.value);
+    return sel;
+  }
+  function segmented(options, value, onChange) {
+    const seg = document.createElement('div');
+    seg.className = 'seg';
+    seg.setAttribute('role', 'group');
+    seg.dataset.group = '1';
+    options.forEach(([v, label]) => {
+      const b = btn(label, '', () => {
+        seg.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+        onChange(v);
+      });
+      b.setAttribute('aria-pressed', String(v === value));
+      seg.appendChild(b);
+    });
+    return seg;
+  }
+  // Сетка вариантов, где каждый вариант показан живым мини-слайдом
+  function miniPicker(options, value, modelFor, onPick, cols) {
+    const grid = document.createElement('div');
+    grid.className = 'minis' + (cols === 2 ? ' two' : '');
+    grid.setAttribute('role', 'group');
+    grid.dataset.group = '1';
+    options.forEach(([v, label]) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'mini';
+      b.setAttribute('aria-pressed', String(v === value));
+      b.appendChild(slideEl(modelFor(v)));
+      b.append(label);
+      b.onclick = () => {
+        grid.querySelectorAll('.mini').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+        onPick(v);
+      };
+      grid.appendChild(b);
+    });
+    return grid;
+  }
+
+  // Картинки: уменьшаем большие и переводим редкие форматы в PNG/JPG, которые понимает PowerPoint
+  function readImage(file) {
+    return new Promise((resolve, reject) => {
+      const fr = new FileReader();
+      fr.onerror = reject;
+      fr.onload = () => {
+        const img = new Image();
+        img.onerror = reject;
+        img.onload = () => {
+          let w = img.naturalWidth, h = img.naturalHeight, src = fr.result;
+          const max = 1600;
+          const okType = ['image/png', 'image/jpeg', 'image/gif'].includes(file.type);
+          if (!w || !h) return reject(new Error('no size'));
+          if (!okType || Math.max(w, h) > max || file.size > 900000) {
+            const r = Math.min(1, max / Math.max(w, h));
+            const c = document.createElement('canvas');
+            c.width = Math.round(w * r);
+            c.height = Math.round(h * r);
+            c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+            src = file.type === 'image/png' || file.type === 'image/svg+xml'
+              ? c.toDataURL('image/png')
+              : c.toDataURL('image/jpeg', 0.86);
+            w = c.width; h = c.height;
+          }
+          resolve({ src, w, h });
+        };
+        img.src = fr.result;
+      };
+      fr.readAsDataURL(file);
+    });
+  }
+  function imagePicker(obj, k, onChange) {
+    const wrap = document.createElement('div');
+    wrap.className = 'imgpick';
+    if (obj[k] && obj[k].src) {
+      const im = new Image();
+      im.src = viewUrl(obj[k].src);
+      im.alt = 'Выбранная картинка';
+      wrap.appendChild(im);
+    }
+    const row = document.createElement('div');
+    row.className = 'row';
+    const lab = document.createElement('label');
+    lab.className = 'btn btn-quiet';
+    lab.append(obj[k] ? 'Заменить картинку' : 'Выбрать картинку');
+    const inp = document.createElement('input');
+    inp.type = 'file';
+    inp.accept = 'image/*';
+    inp.className = 'visually-hidden';
+    inp.onchange = async () => {
+      const f = inp.files[0];
+      if (!f) return;
+      try {
+        obj[k] = await readImage(f);
+        onChange();
+      } catch (e) {
+        toast('Не получилось открыть этот файл. Выберите картинку в формате JPG или PNG.');
+      }
+    };
+    lab.appendChild(inp);
+    row.appendChild(lab);
+    if (obj[k]) row.appendChild(btn('Убрать', 'btn btn-quiet', () => { obj[k] = null; onChange(); }));
+    wrap.appendChild(row);
+    return wrap;
+  }
+
+  // Свой фон: для всех слайдов (holder = state) или для одного слайда
+  function bgControl(holder, commonLabel, onChange, rerender) {
+    const wrap = document.createElement('div');
+    wrap.className = 'stack';
+    wrap.dataset.group = '1';
+    const b = holder.bg;
+    const mode = b ? b.kind : 'none';
+    wrap.appendChild(segmented([['none', commonLabel], ['color', 'Цвет'], ['img', 'Картинка']], mode, (v) => {
+      if (v === 'none') holder.bg = null;
+      else if (v === 'color') holder.bg = { kind: 'color', color: theme().bg };
+      else holder.bg = { kind: 'img', image: null, overlay: 'dark' };
+      onChange();
+      rerender();
+    }));
+    if (b && b.kind === 'color') {
+      const row = document.createElement('div');
+      row.className = 'color-row';
+      const color = document.createElement('input');
+      color.type = 'color';
+      color.value = b.color.toLowerCase();
+      color.setAttribute('aria-label', 'Цвет фона');
+      color.oninput = () => { b.color = color.value.toUpperCase(); onChange(); };
+      row.append(color, 'Цвет текста подстроится сам');
+      wrap.appendChild(row);
+    }
+    if (b && b.kind === 'img') {
+      wrap.appendChild(imagePicker(b, 'image', () => { onChange(); rerender(); }));
+      if (b.image) {
+        const sub = document.createElement('div');
+        const lbl = document.createElement('p');
+        lbl.className = 'hint';
+        lbl.textContent = 'Подложка поверх картинки, чтобы текст читался:';
+        sub.append(lbl, segmented([['dark', 'Тёмная'], ['light', 'Светлая'], ['none', 'Без подложки']], b.overlay, (v) => { b.overlay = v; onChange(); }));
+        wrap.appendChild(sub);
+      }
+    }
+    return wrap;
+  }
+
+  // ---------- Отрисовка частей экрана ----------
+  function renderStrip() {
+    const list = $('#slides');
+    list.innerHTML = '';
+    const last = state.slides.length - 1;
+    state.slides.forEach((s, i) => {
+      const li = document.createElement('li');
+      li.className = 'thumb' + (i === state.current ? ' is-current' : '');
+      const pick = document.createElement('button');
+      pick.type = 'button';
+      pick.className = 'thumb-pick';
+      pick.setAttribute('aria-label', `Слайд ${i + 1}: ${TYPE[s.type].label}`);
+      if (i === state.current) pick.setAttribute('aria-current', 'true');
+      pick.innerHTML = `<span class="thumb-num" aria-hidden="true">${i + 1}</span>`;
+      pick.appendChild(slideEl(build(s, i)));
+      pick.onclick = () => select(i);
+      const tools = document.createElement('div');
+      tools.className = 'thumb-tools';
+      tools.append(
+        iconBtn('up', 'Переместить выше', () => move(i, -1), i === 0),
+        iconBtn('down', 'Переместить ниже', () => move(i, 1), i === last),
+        iconBtn('copy', 'Дублировать', () => duplicate(i)),
+        iconBtn('trash', 'Удалить', () => remove(i), last === 0),
+      );
+      li.append(pick, tools);
+      list.appendChild(li);
+    });
+  }
+
+  function renderStage() {
+    const host = $('#stage-slide');
+    host.innerHTML = '';
+    host.appendChild(slideEl(build(cur(), state.current)));
+    $('#stage-count').textContent = `Слайд ${state.current + 1} из ${state.slides.length}`;
+    $('#prev').disabled = state.current === 0;
+    $('#next').disabled = state.current === state.slides.length - 1;
+  }
+
+  // Обновить превью и миниатюру текущего слайда, не трогая поля ввода
+  function refreshCurrent() {
+    renderStage();
+    const li = $('#slides').children[state.current];
+    if (li) li.querySelector('.frame').replaceWith(slideEl(build(cur(), state.current)));
+    scheduleSave();
+  }
+
+  function renderSlideForm() {
+    const s = cur();
+    const p = $('#panel-slide');
+    const scroll = p.scrollTop;
+    p.innerHTML = '';
+    p.appendChild(field('Тип слайда', selectEl(TYPES.map((t) => [t.id, t.label]), s.type, changeType)));
+    p.appendChild(field('Раскладка', miniPicker(LAYOUTS[s.type], layoutOf(s),
+      (v) => build({ ...s, layout: v }, null),
+      (v) => { s.layout = v; refreshCurrent(); renderSlideForm(); },
+      LAYOUTS[s.type].length === 2 ? 2 : 3)));
+    for (const f of FIELDS[s.type]) {
+      if (f.when && !f.when(s)) continue;
+      if (f.kind === 'input') p.appendChild(field(f.label, textInput(s, f.k), f.hint));
+      else if (f.kind === 'area') p.appendChild(field(f.label, textArea(s, f.k, f.rows), f.hint));
+      else if (f.kind === 'image') p.appendChild(field(f.label, imagePicker(s, f.k, () => { refreshCurrent(); renderSlideForm(); }), f.hint));
+      else if (f.kind === 'choice') {
+        p.appendChild(field(f.label, segmented(f.options, s[f.k], (v) => { s[f.k] = v; refreshCurrent(); }), f.hint));
+      } else if (f.kind === 'pair') {
+        const pair = document.createElement('div');
+        pair.className = 'pair';
+        pair.append(textInput(s, f.k[0], 'Цифра'), textInput(s, f.k[1], 'Подпись'));
+        p.appendChild(field(f.label, pair, f.hint));
+      } else if (f.kind === 'block') {
+        const block = document.createElement('div');
+        block.append(textInput(s, f.k[0], 'Заголовок колонки'), textArea(s, f.k[1], 4, 'Текст колонки'));
+        p.appendChild(field(f.label, block, f.hint));
+      }
+    }
+    p.appendChild(document.createElement('hr')).className = 'divider';
+    p.appendChild(field('Фон этого слайда', bgControl(s, 'Как у всех', refreshCurrent, renderSlideForm)));
+    p.appendChild(field('Заметки докладчика', textArea(s, 'notes', 3), 'Видны только вам — в режиме докладчика PowerPoint.'));
+    p.scrollTop = scroll;
+  }
+
+  function renderThemeForm() {
+    const p = $('#panel-theme');
+    const scroll = p.scrollTop;
+    p.innerHTML = '';
+    const T = theme();
+
+    const grid = document.createElement('div');
+    grid.className = 'themes';
+    grid.setAttribute('role', 'group');
+    grid.dataset.group = '1';
+    THEMES.forEach((t) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'swatch';
+      b.setAttribute('aria-pressed', String(t.id === state.themeId));
+      const face = t.grad ? `linear-gradient(to bottom right, ${t.grad[0]}, ${t.grad[1]})` : t.bg;
+      b.innerHTML = `<span class="swatch-face" style="background:${face};color:${t.text}"><b style="font-family:${fontStack(t.head).replace(/"/g, "'")}">Аа</b><i style="background:${t.accent}"></i></span>${t.name}`;
+      b.onclick = () => {
+        Object.assign(state, { themeId: t.id, accent: null, headFont: null, bodyFont: null, bg: null });
+        applyDesign();
+        renderThemeForm();
+      };
+      grid.appendChild(b);
+    });
+    p.appendChild(field('Тема', grid));
+
+    p.appendChild(field('Украшения', miniPicker(DECORS, state.decor || 'lines',
+      (v) => build(cur(), state.current, { decor: v }),
+      (v) => { state.decor = v; applyDesign(); }, 2), 'Действуют на все слайды.'));
+
+    p.appendChild(field('Фон всех слайдов', bgControl(state, 'Как в теме', applyDesign, renderThemeForm),
+      'У отдельного слайда можно задать свой фон — на вкладке «Слайд».'));
+
+    const colorRow = document.createElement('div');
+    colorRow.className = 'color-row';
+    const color = document.createElement('input');
+    color.type = 'color';
+    color.value = T.accent.toLowerCase();
+    color.oninput = () => { state.accent = color.value.toUpperCase(); applyDesign(); reset.disabled = false; };
+    const reset = btn('Как в теме', 'btn btn-quiet', () => {
+      state.accent = null;
+      applyDesign();
+      renderThemeForm();
+    });
+    reset.disabled = !state.accent;
+    colorRow.append(color, reset);
+    p.appendChild(field('Акцентный цвет', colorRow, 'Им выделяются полоски, цифры и цветные слайды.'));
+
+    const fontOpts = FONTS.map((f) => [f, f]);
+    p.appendChild(field('Шрифт заголовков', selectEl(fontOpts, T.head, (v) => { state.headFont = v; applyDesign(); }, true)));
+    p.appendChild(field('Шрифт текста', selectEl(fontOpts, T.body, (v) => { state.bodyFont = v; applyDesign(); }, true),
+      'Здесь только шрифты, которые есть в PowerPoint на любом компьютере — файл откроется без сюрпризов.'));
+
+    const check = document.createElement('label');
+    check.className = 'check';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = !!state.showNumbers;
+    cb.onchange = () => { state.showNumbers = cb.checked; applyDesign(); };
+    check.append(cb, 'Номера слайдов в углу');
+    const checkWrap = document.createElement('div');
+    checkWrap.className = 'field';
+    checkWrap.appendChild(check);
+    p.appendChild(checkWrap);
+
+    p.appendChild(document.createElement('hr')).className = 'divider';
+    p.appendChild(field('', btn('Начать новую презентацию', 'btn btn-danger', () => {
+      if (!confirm('Удалить все слайды и начать заново? Текущую презентацию не вернуть — сначала скачайте её, если она нужна.')) return;
+      state = sample();
+      renderAll();
+      scheduleSave();
+    }), 'Все слайды заменятся примером.'));
+    p.scrollTop = scroll;
+  }
+
+  function renderInspector() {
+    $('#tab-slide').setAttribute('aria-selected', String(tab === 'slide'));
+    $('#tab-theme').setAttribute('aria-selected', String(tab === 'theme'));
+    $('#panel-slide').hidden = tab !== 'slide';
+    $('#panel-theme').hidden = tab !== 'theme';
+    if (tab === 'slide') renderSlideForm(); else renderThemeForm();
+  }
+
+  function applyDesign() {
+    renderStrip();
+    renderStage();
+    scheduleSave();
+  }
+
+  function renderAll() {
+    $('#deck-name').value = state.name || '';
+    renderStrip();
+    renderStage();
+    renderInspector();
+  }
+
+  // ---------- Действия со слайдами ----------
+  function select(i) {
+    state.current = i;
+    renderStrip();
+    renderStage();
+    renderInspector();
+    scheduleSave();
+  }
+  function move(i, dir) {
+    const j = i + dir;
+    if (j < 0 || j >= state.slides.length) return;
+    [state.slides[i], state.slides[j]] = [state.slides[j], state.slides[i]];
+    state.current = j;
+    renderAll();
+    scheduleSave();
+  }
+  function duplicate(i) {
+    const copy = { ...structuredClone(state.slides[i]), id: uid() };
+    state.slides.splice(i + 1, 0, copy);
+    state.current = i + 1;
+    renderAll();
+    scheduleSave();
+  }
+  function remove(i) {
+    if (state.slides.length === 1) return;
+    const [removed] = state.slides.splice(i, 1);
+    state.current = Math.min(i, state.slides.length - 1);
+    renderAll();
+    scheduleSave();
+    toast(`Слайд ${i + 1} удалён.`, 'Вернуть', () => {
+      state.slides.splice(i, 0, removed);
+      state.current = i;
+      renderAll();
+      scheduleSave();
+    });
+  }
+  function addSlide(type) {
+    const at = state.current + 1;
+    state.slides.splice(at, 0, newSlide(type));
+    state.current = at;
+    tab = 'slide';
+    renderAll();
+    scheduleSave();
+  }
+  function changeType(type) {
+    // Тексты, которые уже есть, сохраняются; недостающие поля берутся из примера
+    const s = cur();
+    state.slides[state.current] = { ...structuredClone(DEFAULTS[type]), ...s, type };
+    refreshCurrent();
+    renderSlideForm();
+    const li = $('#slides').children[state.current];
+    if (li) li.querySelector('.thumb-pick').setAttribute('aria-label', `Слайд ${state.current + 1}: ${TYPE[type].label}`);
+  }
+
+  // ---------- Окно «Добавить слайд» ----------
+  const dlg = $('#add-dlg');
+  function openAdd() {
+    const grid = $('#type-grid');
+    grid.innerHTML = '';
+    TYPES.forEach((t) => {
+      const card = document.createElement('button');
+      card.type = 'button';
+      card.className = 'type-card';
+      card.appendChild(slideEl(build({ type: t.id, ...DEFAULTS[t.id] }, null)));
+      const name = document.createElement('strong');
+      name.textContent = t.label;
+      const hint = document.createElement('span');
+      hint.textContent = t.hint;
+      card.append(name, hint);
+      card.onclick = () => { dlg.close(); addSlide(t.id); };
+      grid.appendChild(card);
+    });
+    dlg.showModal();
+  }
+  $('#add-open').onclick = openAdd;
+  $('#add-close').onclick = () => dlg.close();
+  dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); });
+
+  // ---------- Скачивание .pptx ----------
+  const hx = (c) => c.replace('#', '').toUpperCase();
+  const loadImg = (src) => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; });
+  // Обрезка картинки по размеру области («заполнить»), как в превью
+  const cropCache = new Map();
+  async function coverCrop(src, boxW, boxH) {
+    const key = src.length + ':' + src.slice(-64) + ':' + (boxW / boxH).toFixed(3);
+    if (cropCache.has(key)) return cropCache.get(key);
+    const img = await loadImg(src);
+    const r = boxW / boxH;
+    let sw = img.naturalWidth, sh = sw / r;
+    if (sh > img.naturalHeight) { sh = img.naturalHeight; sw = sh * r; }
+    const c = document.createElement('canvas');
+    c.width = Math.round(Math.min(1920, sw));
+    c.height = Math.round(c.width / r);
+    const g = c.getContext('2d');
+    g.fillStyle = '#FFFFFF';
+    g.fillRect(0, 0, c.width, c.height);
+    g.drawImage(img, (img.naturalWidth - sw) / 2, (img.naturalHeight - sh) / 2, sw, sh, 0, 0, c.width, c.height);
+    const out = c.toDataURL('image/jpeg', 0.88);
+    cropCache.set(key, out);
+    return out;
+  }
+  const fillOf = (e) => ({ color: hx(e.fill), ...(e.alpha != null && e.alpha < 1 ? { transparency: Math.round((1 - e.alpha) * 100) } : {}) });
+
+  async function exportPptx() {
+    if (typeof PptxGenJS === 'undefined') {
+      toast('Не загрузилась библиотека для PowerPoint. Проверьте интернет и обновите страницу.');
+      return;
+    }
+    const button = $('#download');
+    const label = button.innerHTML;
+    button.disabled = true;
+    button.textContent = 'Готовим файл…';
+    try {
+      const pptx = new PptxGenJS();
+      pptx.layout = 'LAYOUT_16x9';
+      pptx.title = state.name || 'Презентация';
+      for (const [i, s] of state.slides.entries()) {
+        const model = build(s, i);
+        const slide = pptx.addSlide();
+        // Фон-картинку кладём первым элементом на весь слайд: фон PowerPoint библиотека умеет только в PNG
+        slide.background = { color: hx(model.bg.color || theme().bg) };
+        if (model.bg.src) {
+          slide.addImage({ x: 0, y: 0, w: W, h: H, data: model.bg.grad ? model.bg.src : await coverCrop(model.bg.src, W, H) });
+        }
+        for (const e of model.els) {
+          const box = { x: e.x, y: e.y, w: e.w, h: e.h };
+          if (e.t === 'rect' || e.t === 'placeholder') {
+            slide.addShape(pptx.ShapeType.rect, { ...box, fill: fillOf(e), line: { type: 'none' } });
+          } else if (e.t === 'ellipse') {
+            slide.addShape(pptx.ShapeType.ellipse, { ...box, fill: fillOf(e), line: { type: 'none' } });
+          } else if (e.t === 'img') {
+            slide.addImage({ ...box, data: e.cover ? await coverCrop(e.src, e.w, e.h) : e.src });
+          } else {
+            const last = e.paras.length - 1;
+            const runs = e.paras.map((t, k) => ({
+              text: t,
+              options: { breakLine: k < last, ...(e.list ? { bullet: { indent: 20 } } : {}) },
+            }));
+            slide.addText(runs, {
+              ...box,
+              fontFace: e.font, fontSize: e.size, color: hx(e.color),
+              bold: !!e.bold, italic: !!e.italic,
+              align: e.align, valign: e.valign,
+              margin: 0, lineSpacingMultiple: e.ls, paraSpaceAfter: e.after,
+            });
+          }
+        }
+        if (s.notes && s.notes.trim()) slide.addNotes(s.notes);
+      }
+      const fileName = (state.name || 'Презентация').replace(/[\\/:*?"<>|]+/g, ' ').trim() || 'Презентация';
+      await pptx.writeFile({ fileName: fileName + '.pptx' });
+      toast(`Файл «${fileName}.pptx» скачан — ищите его в папке «Загрузки».`);
+    } catch (err) {
+      console.error(err);
+      toast('Не получилось собрать файл. Обновите страницу и попробуйте ещё раз.');
+    } finally {
+      button.disabled = false;
+      button.innerHTML = label;
+    }
+  }
+  $('#download').onclick = exportPptx;
+
+  // ---------- Уведомление внизу экрана ----------
+  let toastTimer;
+  function toast(msg, actionLabel, action) {
+    const t = $('#toast');
+    t.innerHTML = '';
+    const span = document.createElement('span');
+    span.textContent = msg;
+    t.appendChild(span);
+    if (actionLabel) t.appendChild(btn(actionLabel, 'toast-act', () => { action(); t.hidden = true; }));
+    t.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { t.hidden = true; }, actionLabel ? 8000 : 5000);
+  }
+
+  // ---------- Прочие обработчики ----------
+  $('#deck-name').oninput = (e) => { state.name = e.target.value; scheduleSave(); };
+  $('#prev').onclick = () => state.current > 0 && select(state.current - 1);
+  $('#next').onclick = () => state.current < state.slides.length - 1 && select(state.current + 1);
+  $('#tab-slide').onclick = () => { tab = 'slide'; renderInspector(); };
+  $('#tab-theme').onclick = () => { tab = 'theme'; renderInspector(); };
+
+  // Стрелки на клавиатуре листают слайды, когда курсор не в поле ввода
+  document.addEventListener('keydown', (e) => {
+    if (dlg.open || e.target.closest('input, textarea, select, [contenteditable]')) return;
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { if (state.current < state.slides.length - 1) { e.preventDefault(); select(state.current + 1); } }
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { if (state.current > 0) { e.preventDefault(); select(state.current - 1); } }
+  });
+
+  renderAll();
+})();
+</script>
+</body>
+</html>
